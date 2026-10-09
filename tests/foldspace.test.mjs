@@ -5,8 +5,8 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const root = mkdtempSync(join(tmpdir(), 'threadloom-test-'));
-process.env.THREADLOOM_HOME = join(root, 'state');
+const root = mkdtempSync(join(tmpdir(), 'foldspace-test-'));
+process.env.FOLDSPACE_HOME = join(root, 'state');
 const { projectIdentity } = await import('../lib/core.mjs');
 const { initMemory, memoryPointer, readMemory, searchMemory, writeMemory } = await import('../lib/memory.mjs');
 const { dispatch } = await import('../lib/runner.mjs');
@@ -41,8 +41,8 @@ test('file handoff works without terminal backends', async () => {
 });
 
 test('CLI help and auto-butterfly hash detection are usable', () => {
-  const bin = join(process.cwd(), 'bin', 'threadloom.mjs'); const cwd = join(root, 'cli'); mkdirSync(cwd); writeFileSync(join(root, 'artifact.md'), 'one');
-  const env = { ...process.env, THREADLOOM_HOME: join(root, 'cli-state') };
+  const bin = join(process.cwd(), 'bin', 'foldspace.mjs'); const cwd = join(root, 'cli'); mkdirSync(cwd); writeFileSync(join(root, 'artifact.md'), 'one');
+  const env = { ...process.env, FOLDSPACE_HOME: join(root, 'cli-state') };
   assert.match(execFileSync(process.execPath, [bin, 'help'], { encoding: 'utf8', env }), /memory init/);
   const first = JSON.parse(execFileSync(process.execPath, [bin, 'auto-butterfly', '--artifact', join(root, 'artifact.md'), '--cwd', cwd], { encoding: 'utf8', env })); assert.equal(first.changed, false);
   writeFileSync(join(root, 'artifact.md'), 'two');

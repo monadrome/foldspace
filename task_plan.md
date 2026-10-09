@@ -1,4 +1,4 @@
-# Threadloom implementation plan
+# Foldspace implementation plan
 
 ## Goal
 

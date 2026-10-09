@@ -1,10 +1,10 @@
 # Architecture
 
-Threadloom separates host instructions from side effects:
+Foldspace separates host instructions from side effects:
 
 ```text
 skills/*/SKILL.md  -> trigger and evidence contract
-bin/threadloom.mjs  -> small CLI surface
+bin/foldspace.mjs  -> small CLI surface
 lib/core.mjs        -> identity, locks, process execution, rate classification
 lib/memory.mjs      -> Markdown SSOT and deterministic pointer index
 lib/runner.mjs      -> Claude/Codex/Kimi adapters and fallback routing

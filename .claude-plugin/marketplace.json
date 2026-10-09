@@ -1,10 +1,10 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "threadloom",
+  "name": "foldspace",
   "description": "Portable agent collaboration skills and a provider-neutral execution CLI.",
   "owner": { "name": "HuaTalk", "url": "https://github.com/HuaTalk" },
   "plugins": [{
-    "name": "threadloom",
+    "name": "foldspace",
     "source": "./",
     "description": "Rewind, hide, handoff, roundtable, leader routing, and project memory.",
     "category": "agent-collaboration"

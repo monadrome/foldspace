@@ -5,7 +5,7 @@ description: Detect a changed or reworked task artifact, preserve the evidence, 
 
 # Auto butterfly effect
 
-Use `threadloom auto-butterfly` (or the equivalent host shell command) as a
+Use `foldspace auto-butterfly` (or the equivalent host shell command) as a
 wrapper around the `butterfly-effect` contract. Record the artifact path,
 before/after hash, transcript path, and time. A changed file alone is evidence
 of change, not proof of causal drift. Ask the rewind skill to diagnose whether

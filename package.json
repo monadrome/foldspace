@@ -1,10 +1,10 @@
 {
-  "name": "@huatalk/threadloom",
+  "name": "@huatalk/foldspace",
   "version": "0.1.0",
   "description": "Portable agent collaboration plugin: rewind, hide, handoff, roundtable, leader routing, and project memory.",
   "type": "module",
   "bin": {
-    "threadloom": "bin/threadloom.mjs"
+    "foldspace": "bin/foldspace.mjs"
   },
   "files": [
     "bin",
@@ -22,7 +22,7 @@
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node bin/threadloom.mjs doctor --json",
+    "check": "node bin/foldspace.mjs doctor --json",
     "pack:check": "npm pack --dry-run"
   },
   "keywords": [
@@ -38,7 +38,7 @@
   "author": "HuaTalk (https://github.com/HuaTalk)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HuaTalk/threadloom.git"
+    "url": "git+https://github.com/HuaTalk/foldspace.git"
   },
   "publishConfig": {
     "access": "public"
@@ -50,7 +50,7 @@
     "test": "tests"
   },
   "bugs": {
-    "url": "https://github.com/HuaTalk/threadloom/issues"
+    "url": "https://github.com/HuaTalk/foldspace/issues"
   },
-  "homepage": "https://github.com/HuaTalk/threadloom#readme"
+  "homepage": "https://github.com/HuaTalk/foldspace#readme"
 }

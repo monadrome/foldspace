@@ -15,7 +15,7 @@ function cwdOf(o) { return resolve(o.cwd || process.cwd()); }
 function providers(o) { return (o.providers || o.provider || 'claude,codex,kimi').split(',').map((x) => x.trim()).filter(Boolean); }
 async function main() {
   const o = opts(argv); const cwd = cwdOf(o);
-  if (command === 'help' || command === '--help') { console.log(`Threadloom ${command}\n\nCommands:\n  memory init|read|write|search|pointer|status\n  leader --task TEXT [--providers claude,codex,kimi]\n  roundtable --task TEXT [--voters claude,codex,kimi]\n  handoff --prompt TEXT [--backend auto|tmux|cmux|file]\n  doctor [--json]\n\nSet THREADLOOM_HOME or AGENT_WEAVE_HOME to relocate state.`); return; }
+  if (command === 'help' || command === '--help') { console.log(`Foldspace ${command}\n\nCommands:\n  memory init|read|write|search|pointer|status\n  leader --task TEXT [--providers claude,codex,kimi]\n  roundtable --task TEXT [--voters claude,codex,kimi]\n  handoff --prompt TEXT [--backend auto|tmux|cmux|file]\n  doctor [--json]\n\nSet FOLDSPACE_HOME or FOLDSPACE_HOME to relocate state.`); return; }
   if (command === 'memory') {
     const sub = o._[0] || 'status';
     if (sub === 'init') return json(initMemory(cwd));
@@ -23,7 +23,7 @@ async function main() {
     if (sub === 'search') return json(searchMemory(cwd, o.query || o._[1] || ''));
     if (sub === 'pointer') return json(memoryPointer(cwd));
     if (sub === 'status') return json({ ...projectIdentity(cwd), home, pointer: memoryPointer(cwd) });
-    if (sub === 'write' || sub === 'put') return json(writeMemory(cwd, { name: o.name || o._[1], description: o.description || 'Threadloom project memory', type: o.type || 'project', content: o.content || o._.slice(2).join(' '), expectedHash: o.expected_hash || null, source: o.source || 'cli' }));
+    if (sub === 'write' || sub === 'put') return json(writeMemory(cwd, { name: o.name || o._[1], description: o.description || 'Foldspace project memory', type: o.type || 'project', content: o.content || o._.slice(2).join(' '), expectedHash: o.expected_hash || null, source: o.source || 'cli' }));
     throw new Error(`unknown memory command: ${sub}`);
   }
   if (command === 'leader') return json(await leader(cwd, o.task || o._.join(' '), providers(o), { roles: o.roles ? o.roles.split(',') : undefined, timeoutMs: Number(o.timeout_ms || 120000) }));
@@ -45,4 +45,4 @@ async function main() {
   }
   throw new Error(`unknown command: ${command}`);
 }
-main().catch((error) => { console.error(`threadloom: ${error.message}`); process.exitCode = 1; });
+main().catch((error) => { console.error(`foldspace: ${error.message}`); process.exitCode = 1; });

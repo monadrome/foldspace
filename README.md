@@ -1,8 +1,8 @@
-# Threadloom
+# Foldspace
 
-Threadloom is a portable collaboration plugin for Claude Code and Agent Skills hosts. It combines artifact rewind (`butterfly-effect`), release hygiene (`hide`), terminal handoff, independent roundtable decisions, a small leader router, and project-scoped Markdown memory.
+Foldspace is a portable collaboration plugin for Claude Code and Agent Skills hosts. It combines artifact rewind (`butterfly-effect`), release hygiene (`hide`), terminal handoff, independent roundtable decisions, a small leader router, and project-scoped Markdown memory.
 
-The design has two layers. `skills/` contains host-readable contracts; `bin/threadloom.mjs` provides deterministic execution where a host can run commands. The router uses Claude, Codex, and Kimi adapters, tries a preferred provider first, recognizes overload/rate-limit failures, and falls back to the next provider. It never treats a fallback as proof that the task succeeded: every attempt is returned with provider, model, exit code, and output.
+The design has two layers. `skills/` contains host-readable contracts; `bin/foldspace.mjs` provides deterministic execution where a host can run commands. The router uses Claude, Codex, and Kimi adapters, tries a preferred provider first, recognizes overload/rate-limit failures, and falls back to the next provider. It never treats a fallback as proof that the task succeeded: every attempt is returned with provider, model, exit code, and output.
 
 ## Install
 
@@ -10,21 +10,21 @@ From a checkout:
 
 ```bash
 ./install.sh
-threadloom doctor --json
+foldspace doctor --json
 ```
 
-For Claude Code, add the checkout as a local marketplace or use `--plugin-dir`. For other Agent Skills hosts, copy or link the `skills/` directory. The package is intended for npm as `@huatalk/threadloom`.
+For Claude Code, add the checkout as a local marketplace or use `--plugin-dir`. For other Agent Skills hosts, copy or link the `skills/` directory. The package is intended for npm as `@huatalk/foldspace`.
 
 ## CLI
 
 ```bash
-threadloom memory init
-threadloom memory write --name api-contract --description 'stable API decisions' --content '...'
-threadloom memory pointer
-threadloom leader --task 'inspect the failing test' --providers claude,codex,kimi
-threadloom roundtable --task 'choose a migration strategy' --voters claude,codex,kimi
-threadloom handoff --prompt 'Continue from the memory pointer' --backend auto
-threadloom auto-butterfly --artifact docs/decision.md --transcript session.md --analyze --handoff
+foldspace memory init
+foldspace memory write --name api-contract --description 'stable API decisions' --content '...'
+foldspace memory pointer
+foldspace leader --task 'inspect the failing test' --providers claude,codex,kimi
+foldspace roundtable --task 'choose a migration strategy' --voters claude,codex,kimi
+foldspace handoff --prompt 'Continue from the memory pointer' --backend auto
+foldspace auto-butterfly --artifact docs/decision.md --transcript session.md --analyze --handoff
 ```
 
 Memory is isolated by canonical Git root (worktrees share the repository memory) or by a real path for non-Git workspaces. `MEMORY.md` is an index of pointers; topic documents hold the durable content. Use `--expected-hash` for optimistic concurrency and keep credentials out of shared project memory.
@@ -37,4 +37,4 @@ Claude Code, Codex CLI, Kimi Code, tmux, and cmux are optional. The CLI remains 
 
 ## License
 
-Threadloom is MIT licensed. See `NOTICE` and `THIRD_PARTY.md` for the retained MIT skill sources.
+Foldspace is MIT licensed. See `NOTICE` and `THIRD_PARTY.md` for the retained MIT skill sources.
