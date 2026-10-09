@@ -1,0 +1,11 @@
+Threadloom is an original work by HuaTalk.
+
+This repository retains the following MIT-licensed skill content:
+
+- `skills/butterfly-effect/`: adapted from monadrome/butterfly-effect-skill,
+  version 0.7.1, Copyright (c) monadrome.
+- `skills/hide/`: adapted from monadrome/hiding-skill, version 0.10.0,
+  Copyright (c) monadrome.
+
+The upstream license texts are retained in the source repositories and the
+adapted skill files are distributed under the applicable MIT terms.

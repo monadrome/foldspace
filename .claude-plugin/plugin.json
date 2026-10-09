@@ -1,0 +1,8 @@
+{
+  "name": "threadloom",
+  "description": "Agent collaboration for session rewind, release hygiene, terminal handoff, roundtable decisions, model routing, and shared project memory.",
+  "version": "0.1.0",
+  "author": { "name": "HuaTalk", "url": "https://github.com/HuaTalk" },
+  "repository": "https://github.com/HuaTalk/threadloom.git",
+  "keywords": ["claude-code", "agent-skills", "multi-agent", "memory", "orchestration"]
+}

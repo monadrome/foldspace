@@ -1,0 +1,56 @@
+{
+  "name": "@huatalk/threadloom",
+  "version": "0.1.0",
+  "description": "Portable agent collaboration plugin: rewind, hide, handoff, roundtable, leader routing, and project memory.",
+  "type": "module",
+  "bin": {
+    "threadloom": "bin/threadloom.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "skills",
+    ".claude-plugin",
+    "README.md",
+    "README-zh.md",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node bin/threadloom.mjs doctor --json",
+    "pack:check": "npm pack --dry-run"
+  },
+  "keywords": [
+    "claude-code",
+    "agent-skills",
+    "multi-agent",
+    "memory",
+    "tmux",
+    "cmux",
+    "orchestration"
+  ],
+  "license": "MIT",
+  "author": "HuaTalk (https://github.com/HuaTalk)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HuaTalk/threadloom.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "tests"
+  },
+  "bugs": {
+    "url": "https://github.com/HuaTalk/threadloom/issues"
+  },
+  "homepage": "https://github.com/HuaTalk/threadloom#readme"
+}
