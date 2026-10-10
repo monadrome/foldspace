@@ -1,5 +1,11 @@
 # Foldspace Contracts
 
+Open Arena knowledge import and the separately authorized two-implementation
+batch have an additive version 1 contract described in
+[Open Arena Content and Independent Implementations](open-arena.md).
+`validateArenaSpec()` and the knowledge importer validate those records. They
+preserve the existing string public-context and leader write-exclusion contracts.
+
 All JSON inputs use version `1` and reject unknown fields. Paths are resolved
 relative to the supplied working directory, while durable state is under
 `FOLDSPACE_HOME`.

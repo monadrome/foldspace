@@ -34,6 +34,15 @@ import {
   completeHandoff,
 } from '../lib/terminal.mjs';
 import { autoButterfly } from '../lib/butterfly.mjs';
+import { importOpenArena, readOpenArena } from '../lib/open-arena.mjs';
+import {
+  runArena,
+  arenaStatus,
+  cancelArena,
+  resumeArena,
+  arenaReviewPacket,
+  recordArenaReview,
+} from '../lib/arena.mjs';
 
 const BOOLEAN = new Set([
   'json',
@@ -105,6 +114,7 @@ const ALLOWED = new Set([
   'exit_code',
   'transcript',
   'artifact',
+  'secret_policy',
 ]);
 
 function parse(args) {
@@ -192,6 +202,11 @@ const HELP = `Foldspace: portable provider runtime, durable DAGs, blind decision
   foldspace handoff --prompt TEXT --backend auto|cmux|tmux|file
   foldspace handoff list|status|read|poll|send|resume|cancel|close|complete --id ID
   foldspace auto-butterfly --input history.json [--analyze --profile analyst]
+  foldspace arena import --source DIRECTORY --input knowledge-metadata.json
+  foldspace arena knowledge --id KNOWLEDGE_ID
+  foldspace arena run --input execution.json --config providers.json --allow-write
+  foldspace arena status|resume|cancel|review --id BATCH_ID
+  foldspace arena review-record --id BATCH_ID --input human-review.json
   foldspace memory init|status|list|read|search|put|forget|inject|doctor
   foldspace doctor --json
   foldspace --version
@@ -219,6 +234,38 @@ async function main() {
   process.on('SIGTERM', abort);
   try {
     const options = runtimeOptions(cwd, o, controller);
+    if (command === 'arena') {
+      const sub = o._[0];
+      if (sub === 'import')
+        return json(
+          importOpenArena(o.source, inputJson(o.input), {
+            sourceCwd: cwd,
+            secretPolicy: o.secret_policy,
+          }),
+        );
+      if (sub === 'knowledge') return json(readOpenArena(o.id));
+      if (sub === 'status') return json(arenaStatus(o.id));
+      if (sub === 'cancel') return json(cancelArena(o.id));
+      if (sub === 'resume')
+        return json(await resumeArena(o.id, { spec: o.input ? inputJson(o.input) : undefined }));
+      if (sub === 'review') return json(arenaReviewPacket(o.id));
+      if (sub === 'review-record') return json(recordArenaReview(o.id, inputJson(o.input)));
+      if (sub === 'run') {
+        check(
+          o.allow_write,
+          'Arena execution requires --allow-write and a separate authorized specification',
+        );
+        const result = await runArena(cwd, inputJson(o.input), {
+          config: o.config,
+          signal: controller.signal,
+          batchId: o.id,
+        });
+        json(result);
+        if (result.status !== 'completed') process.exitCode = 1;
+        return;
+      }
+      throw new FoldspaceError('configuration', 'Unknown arena command');
+    }
     if (command === 'memory') {
       const sub = o._.shift() || 'status',
         scoped = memoryOptions(o);

@@ -11,6 +11,11 @@ lib/process.mjs         -> process groups, deadlines, output bounds
 lib/runner.mjs          -> retry, fallback, circuit, concurrency, budgets
 lib/plans.mjs           -> task DAG validation
 lib/orchestrator.mjs    -> durable events, resume, dependency scheduling
+lib/open-arena.mjs      -> frozen knowledge, authority/evidence and source hashes
+lib/arena-spec.mjs      -> separately authorized implementation specification
+lib/arena.mjs           -> two independent attempts, durable ledger, all outcomes
+lib/arena-artifacts.mjs -> bundle object audit, full snapshots, base/tree patches
+lib/arena-isolation.mjs -> external write policies and local negative probes
 lib/roundtable.mjs      -> blind proposals, evidence validation, chair record
 lib/backends.mjs        -> owned cmux/tmux/file operations
 lib/terminal.mjs        -> handoff state machine and lifecycle API

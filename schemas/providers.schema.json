@@ -48,6 +48,7 @@
         "args": { "type": "array", "items": { "type": "string" } },
         "sandboxCommand": { "type": "string", "minLength": 1, "maxLength": 4096 },
         "sandboxArgs": { "type": "array", "items": { "type": "string" } },
+        "sandboxWrite": { "type": "boolean" },
         "model": { "type": "string", "minLength": 1, "maxLength": 256 },
         "effort": { "enum": ["minimal", "low", "medium", "high", "xhigh", "max"] },
         "sandbox": { "enum": ["read-only", "workspace-write", "external"] },

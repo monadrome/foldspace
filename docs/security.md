@@ -1,5 +1,12 @@
 # Security Model and Limitations
 
+Open Arena imports run without providers and store frozen dependencies outside
+the input repository. Implementation batches distinguish cooperative same-user
+trust from strict external enforcement. Strict writes require a pinned external
+executor, a host policy and successful local negative probes; refusal never
+falls back to cooperative execution. No OS sandbox is bundled. See
+[Open Arena execution and verification boundaries](open-arena.md).
+
 Foldspace treats provider output, plan text, transcripts and terminal output as
 untrusted data. It redacts common credential forms before durable records and
 rejects credentials and raw transcripts in shared memory. It does not inspect or

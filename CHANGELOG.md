@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- Import frozen Open Arena knowledge and reference packages with authority,
+  evidence, semantic-review provenance and original/sanitized hashes.
+- Run separately authorized two-implementation Git/POSIX batches using independent
+  bundle clones, one attempt per lane, a shared durable admission ledger, complete
+  artifacts, fixed host verification and report-only recovery/review.
+- Add external write wrapper policies with strict capability/probe refusal and
+  offline acceptance coverage. Existing leader write exclusion remains intact.
+
 ## 0.2.0-rc.1 - 2026-10-10
 
 ### Features

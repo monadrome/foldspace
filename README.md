@@ -117,6 +117,12 @@ admission controls, not a universal billing cap; see [limitations](docs/security
 
 ## Lifecycles
 
+- **Open Arena:** import reviewed `OPEN_ARENA.md` and references as frozen knowledge
+  without starting a provider. A separately authorized Git/POSIX batch runs two
+  independent bundle clones with one write attempt each, a shared durable budget
+  and host verification. Reports retain all outcomes and multiple artifacts;
+  strict execution requires a verified external write executor. See
+  [Open Arena contracts and CLI](docs/open-arena.md).
 - **Leader:** a low-effort planning call produces a JSON DAG; a supplied `--plan`
   bypasses that call. The host validates profiles, dependencies, timeouts and write
   authorization. Readers run in bounded parallelism; writes are dependency-ordered

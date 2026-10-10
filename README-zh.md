@@ -93,6 +93,10 @@ foldspace run --profile reviewer --config examples/providers.json --prompt '检�
 
 ## 生命周期
 
+- **Open Arena：**将经过审核的 `OPEN_ARENA.md` 与 references 导入为冻结知识包，
+  导入时不启动 provider。独立授权的 Git/POSIX 批次从同一 bundle 创建两份 clone，
+  每路只写一次，共享持久预算并由 host 验证。报告保留全部终态和多份产物；strict
+  要求经过验证的外部写执行器。参见 [契约与 CLI](docs/open-arena.md)。
 - Leader 用低 effort 的规划调用输出 JSON DAG；`--plan` 可直接使用已有计划。
   Host 验证依赖、profile、写权限和 deadline，再执行并行就绪的只读任务。
   同一 worktree 的写任务必须依赖有序且独占执行。
