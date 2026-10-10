@@ -1,0 +1,71 @@
+# Foldspace Contracts
+
+All JSON inputs use version `1` and reject unknown fields. Paths are resolved
+relative to the supplied working directory, while durable state is under
+`FOLDSPACE_HOME`.
+
+Provider configuration is `schemas/providers.schema.json`. A profile names an
+adapter (`claude`, `codex`, `kimi`, `command`, or `fake`), executable, model,
+effort, sandbox, timeout, concurrency, budgets, environment allowlist, retry
+policy, circuit cooldown and fallback profiles. `sandboxCommand` and
+`sandboxArgs` can wrap an adapter in an external read-only sandbox; Kimi
+read-only profiles require them. `fake.responses` is for tests only. A provider
+response is successful only when the adapter parser sees a
+completed result with nonempty text. Claude JSON, Codex JSONL and Kimi JSONL are
+accepted according to their observed CLI event shapes; unrecognized or partial
+events fail with `malformed_output`.
+
+The result envelope has these fields when available:
+
+```json
+{
+  "ok": true,
+  "requestedProvider": "planner",
+  "servedProvider": "planner",
+  "requestedModel": "haiku",
+  "servedModel": "haiku",
+  "requestedProfile": "planner",
+  "servedProfile": "planner",
+  "attempts": [],
+  "requestId": "provider-or-local-id",
+  "latencyMs": 12,
+  "code": 0,
+  "signal": null,
+  "responseHash": "sha256",
+  "failureStage": null
+}
+```
+
+Failure kinds are `rate_limit`, `capacity`, `auth`, `timeout`, `transport`,
+`spawn`, `configuration`, `cancellation`, `task`, `malformed_output`, `budget`,
+`circuit_open`, and `backend`. Only the retryable capacity classes are eligible
+for fallback. `configuration`, `task`, `auth`, malformed output, and budget
+failures stop the route.
+
+Plans use [schemas/plan.schema.json](../schemas/plan.schema.json). The host checks
+the DAG, profile and fallback names, dependency cycles, timeout/retry limits,
+write authorization and write ordering. The planner is untrusted input; it never
+executes a tool. Events are append-only JSONL and task results are separate JSON
+references. The immutable context file is written once and its hash is checked on
+resume. Dependency outputs and worker messages are references, not dynamic public
+prefix content.
+
+Roundtable voters return [schemas/proposal.schema.json](../schemas/proposal.schema.json).
+An evidence item must quote the supplied public anchor exactly. `abstention:true`
+requires `recommendation:null`; every non-abstention needs at least one anchor.
+The host tally is majority or weighted-over-half. A chair runs after blind
+collection and cannot alter the tally. A decision record includes every vote,
+provider metadata, response hash, latency, invalid reasons, minority reasons and
+optional human gate.
+
+Butterfly input uses [schemas/history.schema.json](../schemas/history.schema.json).
+The transcript is strictly chronological. A supported drift requires a previous
+agent-produced version, later user feedback tied to requirements that existed
+before it, a changed replacement version, and a visible causal action. No-op
+results are explicit and carry an evidence gap. `conversationRewound` is always
+`false` because the wrapper only produces advice.
+
+Memory topic frontmatter is parsed as YAML and validated by `lib/memory.mjs`.
+`MEMORY.md` is an index; topic Markdown is the source of truth. Handoff records
+use an owner token, full backend reference and a final marker with the same token.
+The final state is successful only for exit code `0` and a valid marker.

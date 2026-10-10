@@ -1,31 +1,50 @@
 # Architecture
 
-Foldspace separates host instructions from side effects:
+Foldspace keeps host-readable instructions separate from side effects:
 
 ```text
-skills/*/SKILL.md  -> trigger and evidence contract
-bin/foldspace.mjs  -> small CLI surface
-lib/core.mjs        -> identity, locks, process execution, rate classification
-lib/memory.mjs      -> Markdown SSOT and deterministic pointer index
-lib/runner.mjs      -> Claude/Codex/Kimi adapters and fallback routing
-lib/orchestrator.mjs -> leader and blind roundtable
-lib/terminal.mjs    -> cmux, tmux, and file handoff backends
+skills/*/SKILL.md       -> portable trigger/evidence contracts
+bin/foldspace.mjs       -> strict CLI and signal boundary
+lib/profiles.mjs        -> versioned provider/profile validation
+lib/adapters.mjs        -> Claude/Codex/Kimi/fake argv and output parsers
+lib/process.mjs         -> process groups, deadlines, output bounds
+lib/runner.mjs          -> retry, fallback, circuit, concurrency, budgets
+lib/plans.mjs           -> task DAG validation
+lib/orchestrator.mjs    -> durable events, resume, dependency scheduling
+lib/roundtable.mjs      -> blind proposals, evidence validation, chair record
+lib/backends.mjs        -> owned cmux/tmux/file operations
+lib/terminal.mjs        -> handoff state machine and lifecycle API
+lib/butterfly.mjs       -> explicit chronological drift evidence wrapper
+lib/frontmatter.mjs     -> YAML parser for Markdown memory records
+lib/memory.mjs          -> scope boundaries, indexes, locks and freshness
+lib/storage.mjs         -> no-follow atomic state and lock primitives
 ```
 
-The leader and chair are orchestration roles. They do not get implicit write
-access. Provider sandbox and model selection are explicit configuration.
+The provider runtime is the only module that launches model CLIs. A profile is
+validated before an executable starts. Adapter parsers require a completed
+provider event and nonempty output. The runtime records every attempt and uses
+failure kinds to decide whether retry or fallback is allowed.
 
-## Memory identity
+The host owns orchestration. A planner may produce a plan, but the host validates
+its graph, profiles, write mode and limits. One immutable public context file is
+written at run creation. Role-specific prompts append after that prefix; private
+dependency output lives in result references. Events are append-only JSONL so a
+new host can reconstruct task state after a crash. Interrupted write tasks need an
+explicit replay option.
 
-Git worktrees resolve to the same common Git directory and therefore share a
-project memory index. A non-Git workspace is isolated by its normalized real
-path. The index points to topic files under a private state directory, keeping
-shared memory out of a repository by default. A lock protects read-modify-write
-operations and `--expected-hash` makes stale writes explicit.
+Roundtable prompts are built from the same public context and evidence anchors.
+Each voter runs in a fresh temporary cwd and receives no other vote. Only after
+all voters finish does the chair receive the proposals. The host tally and chair
+record preserve invalid votes, abstention and dissent.
 
-## Backend degradation
+Handoffs write their prompt before creating a terminal. cmux gets a full workspace
+and surface UUID; tmux gets a private socket and unique session. Both carry an
+owner token and verify it before input, capture or close. A worker writes a final
+token-bound JSON marker. File mode uses the same record and can be completed by a
+host command.
 
-cmux is selected only after capability discovery; tmux uses a private socket;
-the file backend always remains available. Provider routing is sequential by
-default so a rate-limit response can move to the next configured provider
-without spawning an untracked child process.
+Memory uses Markdown topics with YAML frontmatter as the source of truth.
+`MEMORY.md` is a bounded deterministic index. Git projects use the canonical
+common Git directory so sibling worktrees share project scope; worktree/session/
+role/user scopes require explicit selection. Atomic no-follow writes and
+expected hashes make concurrent updates visible.

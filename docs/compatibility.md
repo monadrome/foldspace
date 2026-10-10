@@ -1,9 +1,21 @@
 # Compatibility matrix
 
-| Capability | Required | Fallback |
-| --- | --- | --- |
-| Skills | A host that reads `SKILL.md` | Copy/link `skills/` |
-| CLI | Node 20+ | None; skills remain portable |
-| Provider | Claude, Codex, or Kimi CLI | Memory and file handoff |
-| Visible handoff | cmux | tmux, then Markdown file |
-| Git identity | Git repository | Canonical real path |
+| Capability            | Required                     | Fallback                           |
+| --------------------- | ---------------------------- | ---------------------------------- |
+| Skills                | A host that reads `SKILL.md` | Copy/link `skills/`                |
+| CLI                   | Node 20+                     | None; skills remain portable       |
+| Provider              | Claude, Codex, or Kimi CLI   | Memory and file handoff            |
+| Visible handoff       | cmux                         | tmux, then Markdown file           |
+| Git identity          | Git repository               | Canonical real path                |
+| Native process groups | POSIX                        | Windows uses file/fake degradation |
+| Kimi read-only        | External sandbox wrapper     | Workspace-write only               |
+| JSON frontmatter      | Node 20+ with `yaml`         | No provider required               |
+
+On Windows, npm places the global launcher directly under the configured prefix
+instead of `<prefix>/bin`; native process groups, tmux and cmux probes are
+skipped and file handoff remains available.
+
+The terminal probe treats cmux RPC/schema differences as a capability downgrade:
+it records bounded command diagnostics, verifies a file handoff fallback, and
+continues with exit status 0 when tmux and offline checks pass. A real cmux probe
+still verifies full UUID ownership and preserves the pre-existing workspace set.

@@ -1,40 +1,191 @@
 # Foldspace
 
-Foldspace is a portable collaboration plugin for Claude Code and Agent Skills hosts. It combines artifact rewind (`butterfly-effect`), release hygiene (`hide`), terminal handoff, independent roundtable decisions, a small leader router, and project-scoped Markdown memory.
+[中文](README-zh.md) | [Contracts](docs/contracts.md) | [Security](docs/security.md)
 
-The design has two layers. `skills/` contains host-readable contracts; `bin/foldspace.mjs` provides deterministic execution where a host can run commands. The router uses Claude, Codex, and Kimi adapters, tries a preferred provider first, recognizes overload/rate-limit failures, and falls back to the next provider. It never treats a fallback as proof that the task succeeded: every attempt is returned with provider, model, exit code, and output.
+Foldspace is a local, provider-neutral runtime for agent collaboration. It routes
+Claude/Codex/Kimi jobs, executes validated task DAGs, collects blind roundtable
+votes, manages owned terminal handoffs, diagnoses supported artifact rework, and
+maintains scoped Markdown memory. Seven portable Agent Skills accompany the CLI.
 
-## Install
+**0.2.0-rc.1 is a release candidate.** Default verification is offline. Real model
+behavior, billing and sandbox enforcement remain dependent on the installed
+provider CLI. A successful CLI exit is validated output, not proof that a coding
+task is correct; run the project's own acceptance checks.
 
-From a checkout:
+## Install, Update, Uninstall
+
+Requires Node 20+ and npm. Git, provider CLIs, tmux and cmux are optional.
+From a checkout, these commands install a versioned tarball:
 
 ```bash
-./install.sh
+npm ci --ignore-scripts
+npm run check
+npm pack
+npm install -g ./huatalk-foldspace-0.2.0-rc.1.tgz --ignore-scripts
 foldspace doctor --json
 ```
 
-For Claude Code, add the checkout as a local marketplace or use `--plugin-dir`. For other Agent Skills hosts, copy or link the `skills/` directory. The package is intended for npm as `@huatalk/foldspace`.
+For a user-local checkout installation: `./install.sh`, then add `$HOME/.local/bin`
+to PATH. Override its prefix with `FOLDSPACE_NPM_PREFIX`. The script installs the CLI
+only and does not overwrite a Claude marketplace. Keep the checkout in place.
 
-## CLI
+When published, use `npm install -g @huatalk/foldspace@<version> --ignore-scripts`
+to install or update. For this candidate, build and install the new tarball with
+the same commands above. No npm release is implied by this repository.
 
 ```bash
-foldspace memory init
-foldspace memory write --name api-contract --description 'stable API decisions' --content '...'
-foldspace memory pointer
-foldspace leader --task 'inspect the failing test' --providers claude,codex,kimi
-foldspace roundtable --task 'choose a migration strategy' --voters claude,codex,kimi
-foldspace handoff --prompt 'Continue from the memory pointer' --backend auto
-foldspace auto-butterfly --artifact docs/decision.md --transcript session.md --analyze --handoff
+npm uninstall -g @huatalk/foldspace --ignore-scripts
+# For the user-local install:
+npm uninstall -g --prefix "$HOME/.local" @huatalk/foldspace --ignore-scripts
 ```
 
-Memory is isolated by canonical Git root (worktrees share the repository memory) or by a real path for non-Git workspaces. `MEMORY.md` is an index of pointers; topic documents hold the durable content. Use `--expected-hash` for optimistic concurrency and keep credentials out of shared project memory.
+Uninstall retains memory and run records. Close owned handoffs first with
+`foldspace handoff close --id <id>`. `foldspace doctor --json` reports the state
+directory; review it before manually removing any retained data.
 
-`handoff --backend auto` prefers cmux, then tmux, then a file-only handoff. It does not close or reuse an existing workspace. A created cmux workspace is identified by the full reference returned by cmux; tmux uses a private socket.
+### Claude Plugin and Agent Skills
 
-## Compatibility
+For a one-session checkout plugin: `claude --plugin-dir .`.
+For a persistent local marketplace, run `claude plugin marketplace add .` and
+`claude plugin install foldspace@foldspace` from the checkout. Update a registered
+marketplace with `claude plugin marketplace update foldspace` and reinstall the
+plugin if required by your host. Remove it with
+`claude plugin uninstall foldspace@foldspace` and
+`claude plugin marketplace remove foldspace`.
 
-Claude Code, Codex CLI, Kimi Code, tmux, and cmux are optional. The CLI remains usable with no provider or terminal installed: memory, pointer generation, skill contracts, and file handoff still work. Provider execution is opt-in and should be run with an appropriate budget and sandbox.
+Other hosts can discover or copy `skills/*/SKILL.md` and its adjacent references
+and LICENSE files. Skills are instructions; hosts need an installed `foldspace`
+CLI to perform deterministic runtime operations. The upstream `butterfly-effect`
+and `hide` contracts are retained, with their MIT notices.
 
-## License
+## Offline Examples
 
-Foldspace is MIT licensed. See `NOTICE` and `THIRD_PARTY.md` for the retained MIT skill sources.
+All commands below run from this checkout without a paid provider:
+
+```bash
+node bin/foldspace.mjs run --profile fake --prompt 'Check the local runtime'
+node bin/foldspace.mjs leader --plan examples/plan.json --config examples/providers.fake.json
+node bin/foldspace.mjs runs list
+node bin/foldspace.mjs roundtable --input examples/decision.json --config examples/providers.fake.json
+node bin/foldspace.mjs auto-butterfly --input examples/history.json --handoff --backend file
+node bin/foldspace.mjs memory put --name api-contract --type decision --content 'Validate plans before executing them.'
+node bin/foldspace.mjs memory inject --topics api-contract
+node bin/foldspace.mjs memory doctor
+```
+
+`npm run pack:check` installs a tarball in a clean temporary HOME, runs these
+workflows through the installed CLI/API, and verifies uninstall. Terminal probes
+are separate: `npm run probe:terminals` creates unique owned resources, tests
+detached printf and long paste/Enter, and closes only those resources.
+When a local cmux RPC schema differs, the probe records bounded diagnostics and
+verifies a completed file fallback; tmux and offline checks remain the release
+gate.
+
+## Providers and Routing
+
+Use `--config providers.json`, `.foldspace/providers.json`, or
+`$FOLDSPACE_HOME/providers.json` (in that order). `agents.json` is a legacy filename
+alias, but its contents must use the version 1 schema. Invalid configuration fails
+closed. See [examples/providers.json](examples/providers.json) and
+[schemas/providers.schema.json](schemas/providers.schema.json).
+
+Profiles specify adapter, executable/argv, model, effort, sandbox, timeout,
+concurrency, budget reservations, environment variable **names**, retry policy,
+circuit cooldown and fallback profiles. `sandboxCommand`/`sandboxArgs` can wrap
+an adapter in an external read-only sandbox; Kimi read-only profiles require
+that wrapper. Never put API keys in JSON, argv, prompts
+or memory. Authenticate through the CLI's credential store or explicitly allow
+the required environment variable. Configure models available to your account.
+
+```bash
+# This is a real provider call and may be billed:
+foldspace run --profile reviewer --config examples/providers.json --prompt 'Review the public task evidence'
+```
+
+Only rate limit, capacity, timeout, transport, missing executable and open circuit
+failures can trigger fallback. Auth, malformed output, task, budget and
+configuration failures stop routing. Transient retries honor Retry-After and
+bounded exponential backoff with jitter. Shared provider gates coordinate local
+processes under the same state directory. Native aliases share the gate for their
+adapter/executable; separate command/fake profiles have separate gates.
+
+Results include requested/served profile/provider/model, request IDs, all attempts,
+latency, exit/signal, SHA-256, failure stage and usage accounting. `servedModel:null`
+and `modelVerified:false` mean the CLI did not identify the actual model. Unknown
+usage is conservatively charged at the configured reservation. Reservations are
+admission controls, not a universal billing cap; see [limitations](docs/security.md).
+
+## Lifecycles
+
+- **Leader:** a low-effort planning call produces a JSON DAG; a supplied `--plan`
+  bypasses that call. The host validates profiles, dependencies, timeouts and write
+  authorization. Readers run in bounded parallelism; writes are dependency-ordered
+  and run alone in the shared worktree. `runs cancel --id <id>` is durable.
+  `leader --resume <id>` reuses successful task results and the immutable public
+  prefix. Uncertain writes remain interrupted; replay requires
+  `--allow-write --retry-failed --retry-interrupted-writes` after inspecting changes.
+- **Roundtable:** 2-3 fresh voters receive identical public evidence and separate
+  private suffixes. No vote is persisted until collection finishes. Quotes must
+  match supplied anchors. Majority or configured weights require over half the
+  total voter weight, including abstentions/invalid votes. The chair runs afterward
+  and cannot change the host tally. Minority reasons and failures remain recorded.
+  A human gate is advisory and must be approved through `decision approve` before
+  downstream systems choose to act; Foldspace never applies a decision itself.
+- **Handoff:** the prompt is written first. `auto` tries cmux, tmux, then file.
+  Records retain full cmux UUIDs or private tmux sockets, ownership, PID and hashes.
+  `handoff read|poll|send|resume|cancel|close --id <id>` manage only owned targets.
+  Terminal workers require an authenticated final JSON marker or completion file;
+  file handoffs allow `handoff complete`. Resume after termination creates a new
+  handoff. Completed terminals remain visible until explicitly closed; timeouts
+  and cancellation clean them up. Pipe-supervised interactive input supports
+  line-oriented programs, not arbitrary full-screen TUIs.
+- **Butterfly:** explicit chronological JSON history must show production,
+  authoritative feedback on pre-existing requirements, and changed rework.
+  Hash change alone, ordinary evolution, acceptance followed by new work, and
+  missing history are no-op. Independent drifts keep separate boundaries.
+  `--analyze` invokes the retained contract through a configured provider only for
+  supported evidence. The result is advice; no conversation is actually rewound.
+
+## Memory
+
+Markdown/frontmatter topics are the source of truth. `MEMORY.md` is a deterministic
+pointer index capped at 200 lines / 24,000 bytes. Injection caps at 200 lines /
+16,000 bytes, includes only requested topics, and reports stale records.
+
+`memory init|status|list|read|search|put|forget|inject|doctor` supports these scopes:
+
+| Scope                    | Boundary                                                      |
+| ------------------------ | ------------------------------------------------------------- |
+| `project` (default)      | canonical common Git directory, shared by sibling worktrees   |
+| `worktree`               | one real worktree root                                        |
+| `user`                   | OS user, shared across projects only when explicitly selected |
+| `session --session <id>` | project plus explicit session ID                              |
+| `role --role <id>`       | project plus explicit agent role                              |
+
+Non-Git projects use their real path. Project-shared means shared among local
+agents under the same state directory, not a network/multi-user service. User
+memory injection additionally requires `--include-private`. Topics carry type,
+provenance, created/updated time, freshness and status. `--expected-hash <sha256>`
+detects stale edits; `--create-only` rejects existing topics. `memory doctor
+--rebuild` reconstructs the index. Credentials and raw shared transcripts are
+rejected. Traversal, null bytes, symlinks and hardlinked records are rejected;
+writes use fsync/rename and live-owner locks are never aged out.
+
+## Security, Compatibility and Contribution
+
+State defaults to `$XDG_STATE_HOME/foldspace` or `$HOME/.local/state/foldspace`;
+`FOLDSPACE_HOME` overrides it. Foldspace is a local trusted-user tool, not an
+isolation boundary against hostile processes running as that same OS user.
+Review commands and provider tool permissions. POSIX process groups supervise
+native workers; Windows degrades to fake providers, memory, skills and file
+handoffs. Kimi needs an external sandbox for read-only use and is excluded from
+tool-free planning/voting until a verified CLI mode exists.
+
+See [security](docs/security.md), [contracts/API](docs/contracts.md),
+[compatibility](docs/compatibility.md), [contributing](CONTRIBUTING.md), and
+[release checks](docs/releasing.md). Runtime dependencies: `yaml` for frontmatter;
+development dependency: Prettier. CI checks Node 20/22 on Linux/macOS/Windows,
+syntax, formatting, manifests/skill discovery, offline tests and tarball installs.
+
+MIT. [NOTICE](NOTICE) and [THIRD_PARTY.md](THIRD_PARTY.md) identify retained upstream
+work and newly authored Foldspace code.

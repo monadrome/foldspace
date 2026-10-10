@@ -7,5 +7,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npm test
-      - run: npm pack --dry-run
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm run pack:check
+      - name: Validate Claude plugin when available
+        run: |
+          if command -v claude >/dev/null 2>&1; then claude plugin validate . --strict; else echo "Claude CLI unavailable; manifest is covered by scripts/validate.mjs"; fi
