@@ -11,4 +11,8 @@ memory pointer; append role-specific instructions after it. Prefer the
 configured provider/model, then switch only for unavailable, overloaded, or
 rate-limited attempts. Use bounded timeouts and record every attempt. A worker
 failure must remain visible; a fallback is not a success claim. Shared memory
-is a pointer to project documents, not a prompt dump or a credential store.
+is a pointer to project documents, not a prompt dump or a credential store. The
+host validates planner output as a versioned DAG before executing it. Read-only
+tasks may run in bounded parallelism; write tasks require explicit host
+authorization and dependency ordering. Resume reuses successful results but
+does not replay uncertain writes automatically.

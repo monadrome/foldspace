@@ -10,4 +10,7 @@ Prefer cmux when available for a visible handoff, then tmux for headless work,
 then a file-only handoff. Detect capabilities rather than assuming either
 terminal exists. Use a unique name and retain the full cmux workspace reference
 or private tmux socket. The created session is owned by this handoff; do not
-close another session. Report backend, reference, prompt path/hash, and cwd.
+close another session. Report backend, full reference, ownership token, PID,
+prompt path/hash, memory pointer and cwd. Poll for a token-bound final JSON
+marker or explicit completion record; a process exit without that marker is a
+failure. Timeout/cancel/close only resources owned by this handoff.

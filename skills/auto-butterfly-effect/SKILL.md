@@ -6,10 +6,11 @@ description: Detect a changed or reworked task artifact, preserve the evidence, 
 # Auto butterfly effect
 
 Use `foldspace auto-butterfly` (or the equivalent host shell command) as a
-wrapper around the `butterfly-effect` contract. Record the artifact path,
-before/after hash, transcript path, and time. A changed file alone is evidence
-of change, not proof of causal drift. Ask the rewind skill to diagnose whether
-the artifact was reworked because it missed its expected outcome.
+wrapper around the `butterfly-effect` contract. Supply a versioned artifact and
+chronological transcript input. Record artifact versions, hashes, authoritative
+feedback, causal actions and the time. A changed file alone is evidence of
+change, not proof of causal drift. Ask the rewind skill to diagnose whether the
+artifact was reworked because it missed its expected outcome.
 
 If a reliable rewind point exists, return the upstream recommendation and
 updated prompt. With `--handoff`, create a new cmux/tmux/file session;
