@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "artifacts": [{ "id": "report", "path": "report.md" }],
+  "transcript": [
+    {
+      "id": "goal",
+      "order": 0,
+      "actor": "user",
+      "kind": "objective",
+      "text": "Write an evidence-based migration report."
+    },
+    {
+      "id": "req",
+      "order": 1,
+      "actor": "user",
+      "kind": "requirement",
+      "artifactId": "report",
+      "text": "Compare measured costs and preserve source citations."
+    },
+    {
+      "id": "draft",
+      "order": 2,
+      "actor": "agent",
+      "kind": "produce",
+      "artifactId": "report",
+      "versionId": "v1",
+      "hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "id": "feedback",
+      "order": 3,
+      "actor": "user",
+      "kind": "feedback",
+      "artifactId": "report",
+      "versionId": "v1",
+      "requirementIds": ["req"],
+      "text": "The draft omitted cost comparisons and citations."
+    },
+    {
+      "id": "fix",
+      "order": 4,
+      "actor": "agent",
+      "kind": "rework",
+      "artifactId": "report",
+      "versionId": "v2",
+      "replaces": "v1",
+      "hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "reason": "missed_requirement",
+      "requirementIds": ["req"],
+      "feedbackId": "feedback"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "objective": "Inspect two independent components and combine the findings.",
+  "publicContext": "This is an offline fixture; no tools or metered providers are required.",
+  "parallelism": 2,
+  "tasks": [
+    {
+      "id": "runtime",
+      "role": "runtime-reviewer",
+      "prompt": "Review runtime evidence.",
+      "profile": "worker",
+      "mode": "readonly",
+      "timeoutMs": 1000
+    },
+    {
+      "id": "memory",
+      "role": "memory-reviewer",
+      "prompt": "Review memory evidence.",
+      "profile": "worker",
+      "mode": "readonly",
+      "timeoutMs": 1000
+    },
+    {
+      "id": "summary",
+      "role": "reporter",
+      "prompt": "Combine the dependency findings.",
+      "profile": "worker",
+      "dependsOn": ["runtime", "memory"],
+      "mode": "readonly",
+      "timeoutMs": 1000
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["recommendation", "evidence", "uncertainty", "abstention", "reason"],
+  "properties": {
+    "recommendation": { "type": ["string", "null"], "maxLength": 256 },
+    "evidence": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "quote"],
+        "properties": {
+          "id": { "type": "string" },
+          "quote": { "type": "string", "minLength": 1, "maxLength": 100000 }
+        }
+      }
+    },
+    "uncertainty": { "type": "number", "minimum": 0, "maximum": 1 },
+    "abstention": { "type": "boolean" },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 20000 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "abstention": { "const": true } } },
+      "then": { "properties": { "recommendation": { "const": null } } },
+      "else": {
+        "properties": {
+          "recommendation": { "type": "string", "minLength": 1 },
+          "evidence": { "minItems": 1 }
+        }
+      }
+    }
+  ]
+}

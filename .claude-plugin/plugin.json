@@ -1,7 +1,7 @@
 {
   "name": "foldspace",
   "description": "Agent collaboration for session rewind, release hygiene, terminal handoff, roundtable decisions, model routing, and shared project memory.",
-  "version": "0.1.0",
+  "version": "0.2.0-rc.1",
   "author": { "name": "HuaTalk", "url": "https://github.com/HuaTalk" },
   "repository": "https://github.com/HuaTalk/foldspace.git",
   "keywords": ["claude-code", "agent-skills", "multi-agent", "memory", "orchestration"]

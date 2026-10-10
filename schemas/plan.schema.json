@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "objective", "tasks"],
+  "properties": {
+    "version": { "const": 1 },
+    "objective": { "type": "string", "minLength": 1, "maxLength": 100000 },
+    "publicContext": { "type": "string", "maxLength": 1000000 },
+    "parallelism": { "type": "integer", "minimum": 1, "maximum": 16 },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "role", "prompt", "profile"],
+        "properties": {
+          "id": { "$ref": "providers.schema.json#/$defs/id" },
+          "role": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "prompt": { "type": "string", "minLength": 1, "maxLength": 100000 },
+          "profile": { "$ref": "providers.schema.json#/$defs/id" },
+          "dependsOn": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "$ref": "providers.schema.json#/$defs/id" }
+          },
+          "fallback": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "$ref": "providers.schema.json#/$defs/id" }
+          },
+          "mode": { "enum": ["readonly", "write"] },
+          "model": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "effort": { "enum": ["minimal", "low", "medium", "high", "xhigh", "max"] },
+          "timeoutMs": { "type": "integer", "minimum": 10, "maximum": 86400000 },
+          "retry": { "$ref": "providers.schema.json#/$defs/retry" }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "@huatalk/foldspace",
-  "version": "0.1.0",
+  "version": "0.2.0-rc.1",
   "description": "Portable agent collaboration plugin: rewind, hide, handoff, roundtable, leader routing, and project memory.",
   "type": "module",
   "bin": {
@@ -9,7 +9,12 @@
   "files": [
     "bin",
     "lib",
+    "index.mjs",
     "skills",
+    "docs",
+    "schemas",
+    "examples",
+    "install.sh",
     ".claude-plugin",
     "README.md",
     "README-zh.md",
@@ -22,8 +27,12 @@
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "check": "node bin/foldspace.mjs doctor --json",
-    "pack:check": "npm pack --dry-run"
+    "check": "npm run format:check && npm run validate && npm test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "validate": "node scripts/validate.mjs",
+    "pack:check": "node scripts/pack-check.mjs",
+    "probe:terminals": "node scripts/probe-terminals.mjs"
   },
   "keywords": [
     "claude-code",
@@ -43,7 +52,12 @@
   "publishConfig": {
     "access": "public"
   },
-  "main": "index.js",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./runner": "./lib/runner.mjs",
+    "./memory": "./lib/memory.mjs"
+  },
   "directories": {
     "doc": "docs",
     "lib": "lib",
@@ -52,5 +66,11 @@
   "bugs": {
     "url": "https://github.com/HuaTalk/foldspace/issues"
   },
-  "homepage": "https://github.com/HuaTalk/foldspace#readme"
+  "homepage": "https://github.com/HuaTalk/foldspace#readme",
+  "dependencies": {
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9"
+  }
 }

@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "profiles": {
+    "worker": {
+      "adapter": "fake",
+      "command": "fake",
+      "model": "local-fixture",
+      "timeoutMs": 1000,
+      "concurrency": 2,
+      "budget": { "reserveTokens": 10, "reserveCostUsd": 0 },
+      "responses": [
+        {
+          "output": "Local worker completed.",
+          "model": "local-fixture",
+          "usage": { "tokens": 10, "costUsd": 0 }
+        }
+      ]
+    },
+    "voter-a": {
+      "adapter": "fake",
+      "command": "fake",
+      "model": "local-fixture",
+      "responses": [
+        {
+          "output": "{\"recommendation\":\"A\",\"evidence\":[{\"id\":\"cost\",\"quote\":\"A costs 3 units\"}],\"uncertainty\":0.2,\"abstention\":false,\"reason\":\"Lower measured cost\"}"
+        }
+      ]
+    },
+    "voter-b": {
+      "adapter": "fake",
+      "command": "fake",
+      "model": "local-fixture",
+      "responses": [
+        {
+          "output": "{\"recommendation\":\"A\",\"evidence\":[{\"id\":\"cost\",\"quote\":\"A costs 3 units\"}],\"uncertainty\":0.3,\"abstention\":false,\"reason\":\"Prefer the measured result\"}"
+        }
+      ]
+    },
+    "chair": {
+      "adapter": "fake",
+      "command": "fake",
+      "model": "local-fixture",
+      "responses": [
+        {
+          "output": "{\"recommendation\":\"A\",\"summary\":\"Both votes cite the public cost evidence.\",\"minorityReasons\":[]}"
+        }
+      ]
+    }
+  },
+  "fallbackOrder": ["worker"]
+}

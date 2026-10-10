@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "profiles": {
+    "planner": {
+      "adapter": "claude",
+      "command": "claude",
+      "model": "haiku",
+      "effort": "low",
+      "sandbox": "read-only",
+      "timeoutMs": 90000,
+      "concurrency": 2,
+      "envAllowlist": ["PATH", "HOME", "TMPDIR", "LANG", "ANTHROPIC_API_KEY"],
+      "budget": {
+        "maxRequests": 10,
+        "maxTokens": 50000,
+        "maxCostUsd": 2,
+        "reserveTokens": 4096,
+        "reserveCostUsd": 0.1
+      },
+      "retry": { "maxRetries": 1, "baseMs": 500, "maxMs": 30000, "jitter": 0.2 },
+      "circuit": { "threshold": 3, "cooldownMs": 30000 },
+      "fallback": ["reviewer"]
+    },
+    "reviewer": {
+      "adapter": "codex",
+      "command": "codex",
+      "model": "gpt-5",
+      "effort": "low",
+      "sandbox": "read-only",
+      "envAllowlist": ["PATH", "HOME", "TMPDIR", "LANG", "OPENAI_API_KEY"]
+    },
+    "implementer": {
+      "adapter": "codex",
+      "command": "codex",
+      "model": "gpt-5",
+      "effort": "medium",
+      "sandbox": "workspace-write",
+      "concurrency": 1
+    },
+    "kimi-writer": {
+      "adapter": "kimi",
+      "command": "kimi",
+      "model": "kimi-k2.5",
+      "sandbox": "workspace-write",
+      "envAllowlist": ["PATH", "HOME", "TMPDIR", "LANG", "KIMI_API_KEY"]
+    }
+  },
+  "fallbackOrder": ["planner", "reviewer"]
+}

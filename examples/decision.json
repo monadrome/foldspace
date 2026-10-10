@@ -1,0 +1,9 @@
+{
+  "objective": "Choose the lower measured cost.",
+  "publicContext": "Only the supplied evidence can support this decision.",
+  "evidence": [{ "id": "cost", "text": "A costs 3 units; B costs 8 units." }],
+  "voters": ["voter-a", "voter-b"],
+  "chairProfile": "chair",
+  "method": "majority",
+  "humanGate": true
+}

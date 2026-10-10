@@ -1,48 +1,431 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { initMemory, memoryPointer, readMemory, searchMemory, writeMemory } from '../lib/memory.mjs';
-import { atomicWrite, commandExists, hash, home, projectDir, projectIdentity } from '../lib/core.mjs';
-import { handoff } from '../lib/terminal.mjs';
-import { leader, roundtable } from '../lib/orchestrator.mjs';
+import { check, FoldspaceError } from '../lib/validation.mjs';
+import { commandExists, hash, projectIdentity, stateHome } from '../lib/core.mjs';
+import { redactData, environmentSecrets } from '../lib/security.mjs';
+import { createRuntime } from '../lib/runner.mjs';
+import { loadConfig } from '../lib/profiles.mjs';
+import {
+  initMemory,
+  memoryPointer,
+  memoryStatus,
+  listMemory,
+  readMemory,
+  searchMemory,
+  writeMemory,
+  forgetMemory,
+  injectMemory,
+  doctorMemory,
+} from '../lib/memory.mjs';
+import { leader, listRuns, runStatus, cancelRun, sendTaskMessage } from '../lib/orchestrator.mjs';
+import { roundtable, decisionStatus, resolveDecision } from '../lib/roundtable.mjs';
+import {
+  handoff,
+  handoffStatus,
+  listHandoffs,
+  readHandoff,
+  pollHandoff,
+  sendHandoff,
+  resumeHandoff,
+  cancelHandoff,
+  closeHandoff,
+  completeHandoff,
+} from '../lib/terminal.mjs';
+import { autoButterfly } from '../lib/butterfly.mjs';
 
-const argv = process.argv.slice(2); const command = argv.shift() || 'help';
-function opts(args) { const out = { _: [] }; for (let i = 0; i < args.length; i += 1) { const x = args[i]; if (!x.startsWith('--')) { out._.push(x); continue; } const key = x.slice(2).replaceAll('-', '_'); const next = args[i + 1]; if (next && !next.startsWith('--')) { out[key] = next; i += 1; } else out[key] = true; } return out; }
-function json(value) { process.stdout.write(`${JSON.stringify(value, null, 2)}\n`); }
-function cwdOf(o) { return resolve(o.cwd || process.cwd()); }
-function providers(o) { return (o.providers || o.provider || 'claude,codex,kimi').split(',').map((x) => x.trim()).filter(Boolean); }
-async function main() {
-  const o = opts(argv); const cwd = cwdOf(o);
-  if (command === 'help' || command === '--help') { console.log(`Foldspace ${command}\n\nCommands:\n  memory init|read|write|search|pointer|status\n  leader --task TEXT [--providers claude,codex,kimi]\n  roundtable --task TEXT [--voters claude,codex,kimi]\n  handoff --prompt TEXT [--backend auto|tmux|cmux|file]\n  doctor [--json]\n\nSet FOLDSPACE_HOME or FOLDSPACE_HOME to relocate state.`); return; }
-  if (command === 'memory') {
-    const sub = o._[0] || 'status';
-    if (sub === 'init') return json(initMemory(cwd));
-    if (sub === 'read') return process.stdout.write(`${readMemory(cwd, o.name || null)}\n`);
-    if (sub === 'search') return json(searchMemory(cwd, o.query || o._[1] || ''));
-    if (sub === 'pointer') return json(memoryPointer(cwd));
-    if (sub === 'status') return json({ ...projectIdentity(cwd), home, pointer: memoryPointer(cwd) });
-    if (sub === 'write' || sub === 'put') return json(writeMemory(cwd, { name: o.name || o._[1], description: o.description || 'Foldspace project memory', type: o.type || 'project', content: o.content || o._.slice(2).join(' '), expectedHash: o.expected_hash || null, source: o.source || 'cli' }));
-    throw new Error(`unknown memory command: ${sub}`);
+const BOOLEAN = new Set([
+  'json',
+  'allow_write',
+  'retry_failed',
+  'retry_interrupted_writes',
+  'human_gate',
+  'include_private',
+  'rebuild',
+  'create_only',
+  'analyze',
+  'handoff',
+  'interactive',
+  'no_enter',
+  'help',
+]);
+const ALLOWED = new Set([
+  ...BOOLEAN,
+  'cwd',
+  'config',
+  'profile',
+  'providers',
+  'fallback',
+  'prompt',
+  'prompt_file',
+  'task',
+  'task_id',
+  'sender',
+  'public_context',
+  'model',
+  'mode',
+  'timeout_ms',
+  'parallelism',
+  'budget',
+  'plan',
+  'resume',
+  'id',
+  'name',
+  'description',
+  'content',
+  'file',
+  'type',
+  'source',
+  'author',
+  'reference',
+  'ttl_days',
+  'status',
+  'expected_hash',
+  'scope',
+  'scopes',
+  'session',
+  'role',
+  'query',
+  'topics',
+  'max_bytes',
+  'max_lines',
+  'input',
+  'evidence',
+  'voters',
+  'chair',
+  'method',
+  'reason',
+  'backend',
+  'command',
+  'args',
+  'env_allowlist',
+  'wait_ms',
+  'interval_ms',
+  'exit_code',
+  'transcript',
+  'artifact',
+]);
+
+function parse(args) {
+  const options = { _: [] };
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (!arg.startsWith('--')) {
+      options._.push(arg);
+      continue;
+    }
+    const equal = arg.indexOf('=');
+    const key = (equal >= 0 ? arg.slice(2, equal) : arg.slice(2)).replaceAll('-', '_');
+    check(ALLOWED.has(key), `Unknown option --${key.replaceAll('_', '-')}`);
+    check(!Object.hasOwn(options, key), `Duplicate option --${key}`);
+    if (BOOLEAN.has(key)) {
+      check(equal < 0, `--${key} is a boolean flag`);
+      options[key] = true;
+      continue;
+    }
+    const value = equal >= 0 ? arg.slice(equal + 1) : args[++i];
+    check(typeof value === 'string' && !value.startsWith('--'), `--${key} requires a value`);
+    options[key] = value;
   }
-  if (command === 'leader') return json(await leader(cwd, o.task || o._.join(' '), providers(o), { roles: o.roles ? o.roles.split(',') : undefined, timeoutMs: Number(o.timeout_ms || 120000) }));
-  if (command === 'roundtable') return json(await roundtable(cwd, o.task || o._.join(' '), providers(o), { voters: (o.voters || o.providers || 'claude,codex,kimi').split(','), chairProviders: providers(o), timeoutMs: Number(o.timeout_ms || 120000) }));
-  if (command === 'auto-butterfly') {
-    if (!o.artifact) throw new Error('--artifact is required');
-    const artifact = resolve(cwd, o.artifact); const text = readFileSync(artifact, 'utf8'); const currentHash = hash(text); const stateFile = join(projectDir(cwd), 'auto-butterfly.json');
-    const previous = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, 'utf8')) : null; const changed = Boolean(previous && previous.hash !== currentHash);
-    const result = { artifact, previous_hash: previous?.hash || null, current_hash: currentHash, changed, transcript: o.transcript || null, analysis: null };
-    atomicWrite(stateFile, JSON.stringify({ hash: currentHash, artifact, at: new Date().toISOString() }, null, 2));
-    if (changed && o.analyze) { const routed = await leader(cwd, `Use the butterfly-effect skill to diagnose whether ${artifact} was reworked because it missed the expected outcome. Transcript: ${o.transcript || 'current session'}. Return a rewind recommendation and updated prompt only when evidence supports it.`, providers(o), { roles: ['rewind-diagnostician'], timeoutMs: Number(o.timeout_ms || 120000) }); result.analysis = routed.results; }
-    if (changed && o.handoff) result.handoff = await handoff(cwd, `Continue from the butterfly-effect analysis for ${artifact}. Read the memory pointer and transcript before acting.`, { backend: o.backend || 'auto', name: o.name, agent: o.agent, json: true });
-    return json(result);
-  }
-  if (command === 'handoff') return json(await handoff(cwd, o.prompt || o._.join(' '), { backend: o.backend || 'auto', name: o.name, command: o.command, agent: o.agent, json: true }));
-  if (command === 'doctor') {
-    const checks = { node: process.versions.node, project: projectIdentity(cwd), memory: memoryPointer(cwd), claude: commandExists('claude'), codex: commandExists('codex'), kimi: commandExists('kimi'), tmux: commandExists('tmux'), cmux: commandExists('cmux'), plugin: existsSync(join(fileURLToPath(new URL('..', import.meta.url)), '.claude-plugin', 'plugin.json')) };
-    if (o.json) return json({ ok: Boolean(checks.plugin && checks.memory), checks }); console.log(JSON.stringify({ ok: true, checks }, null, 2)); return;
-  }
-  throw new Error(`unknown command: ${command}`);
+  return options;
 }
-main().catch((error) => { console.error(`foldspace: ${error.message}`); process.exitCode = 1; });
+const csv = (value) =>
+  value
+    ?.split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+function inputFile(file) {
+  const value = readFileSync(file, 'utf8');
+  check(Buffer.byteLength(value) <= 8 * 1024 * 1024, 'Input file exceeds 8 MiB');
+  return value;
+}
+function inputJson(file) {
+  try {
+    return JSON.parse(inputFile(file));
+  } catch (error) {
+    if (error instanceof SyntaxError)
+      throw new FoldspaceError('configuration', 'Invalid JSON input file');
+    throw error;
+  }
+}
+function json(value) {
+  process.stdout.write(
+    `${JSON.stringify(redactData(value, environmentSecrets(process.env)), null, 2)}\n`,
+  );
+}
+function prompt(o) {
+  return o.prompt_file ? inputFile(o.prompt_file) : o.prompt || o.task || o._.join(' ');
+}
+function memoryOptions(o) {
+  const options = {
+    scope: o.scope,
+    session: o.session,
+    role: o.role,
+    includePrivate: o.include_private,
+    rebuild: o.rebuild,
+  };
+  if (o.expected_hash !== undefined) options.expectedHash = o.expected_hash;
+  return options;
+}
+function runtimeOptions(cwd, o, controller) {
+  return {
+    cwd,
+    config: o.config,
+    signal: controller.signal,
+    timeoutMs: o.timeout_ms === undefined ? undefined : Number(o.timeout_ms),
+    budget: o.budget ? inputJson(o.budget) : undefined,
+    allowWrite: Boolean(o.allow_write),
+    parallelism: o.parallelism ? Number(o.parallelism) : undefined,
+  };
+}
+
+const HELP = `Foldspace: portable provider runtime, durable DAGs, blind decisions and memory.
+
+  foldspace run --profile fake --prompt 'Offline check'
+  foldspace leader --plan plan.json [--allow-write]
+  foldspace leader --task TEXT --profile planner --config providers.json
+  foldspace leader --resume RUN_ID [--retry-failed --retry-interrupted-writes]
+  foldspace runs list|status|cancel [--id RUN_ID]
+  foldspace roundtable --input decision.json --config providers.json
+  foldspace decision status|approve|reject --id ID [--reason TEXT]
+  foldspace handoff --prompt TEXT --backend auto|cmux|tmux|file
+  foldspace handoff list|status|read|poll|send|resume|cancel|close|complete --id ID
+  foldspace auto-butterfly --input history.json [--analyze --profile analyst]
+  foldspace memory init|status|list|read|search|put|forget|inject|doctor
+  foldspace doctor --json
+  foldspace --version
+
+All state lives under FOLDSPACE_HOME or the platform-independent XDG state path.
+See docs/contracts.md and examples/ for versioned input contracts.
+`;
+
+async function main() {
+  const args = process.argv.slice(2),
+    command = args.shift() || 'help';
+  if (command === '--version' || command === 'version') {
+    console.log(JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).version);
+    return;
+  }
+  const o = parse(args),
+    cwd = resolve(o.cwd || process.cwd());
+  if (command === 'help' || command === '--help' || o.help) {
+    process.stdout.write(HELP);
+    return;
+  }
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  process.on('SIGINT', abort);
+  process.on('SIGTERM', abort);
+  try {
+    const options = runtimeOptions(cwd, o, controller);
+    if (command === 'memory') {
+      const sub = o._.shift() || 'status',
+        scoped = memoryOptions(o);
+      if (sub === 'init') return json(initMemory(cwd, scoped));
+      if (sub === 'status') return json(memoryStatus(cwd, scoped));
+      if (sub === 'list') return json(listMemory(cwd, scoped));
+      if (sub === 'read') {
+        const content = readMemory(cwd, o.name || o._[0] || null, scoped);
+        if (o.json) return json({ content });
+        process.stdout.write(content);
+        return;
+      }
+      if (sub === 'pointer') return json(memoryPointer(cwd, scoped));
+      if (sub === 'search') return json(searchMemory(cwd, o.query || o._[0] || '', scoped));
+      if (sub === 'write' || sub === 'put') {
+        const value = {
+          name: o.name || o._[0],
+          description: o.description,
+          type: o.type,
+          content: o.file ? inputFile(o.file) : o.content || o._.slice(1).join(' '),
+          source: o.source || 'cli',
+          author: o.author,
+          reference: o.reference,
+          ttlDays: o.ttl_days === undefined ? undefined : Number(o.ttl_days),
+          status: o.status,
+        };
+        if (o.expected_hash !== undefined) value.expectedHash = o.expected_hash;
+        if (o.create_only) value.expectedHash = null;
+        return json(writeMemory(cwd, value, scoped));
+      }
+      if (sub === 'forget') return json(forgetMemory(cwd, o.name || o._[0], scoped));
+      if (sub === 'inject')
+        return json(
+          injectMemory(cwd, {
+            ...scoped,
+            scopes: csv(o.scopes),
+            topics: csv(o.topics),
+            maxBytes: o.max_bytes ? Number(o.max_bytes) : undefined,
+            maxLines: o.max_lines ? Number(o.max_lines) : undefined,
+          }),
+        );
+      if (sub === 'doctor') {
+        const result = doctorMemory(cwd, scoped);
+        json(result);
+        if (!result.ok) process.exitCode = 1;
+        return;
+      }
+      throw new FoldspaceError('configuration', `Unknown memory command: ${sub}`);
+    }
+    if (command === 'run') {
+      const mode = o.mode || 'readonly';
+      check(mode !== 'write' || o.allow_write, 'Write mode requires --allow-write');
+      const runtime = createRuntime(loadConfig(cwd, o.config), { budget: options.budget });
+      const result = await runtime.dispatch(
+        prompt(o),
+        [o.profile || 'fake', ...(csv(o.fallback) || [])],
+        { ...options, mode, model: o.model },
+      );
+      json(result);
+      if (!result.ok) process.exitCode = 1;
+      return;
+    }
+    if (command === 'leader') {
+      const result = await leader(cwd, prompt(o), csv(o.providers) || [o.profile || 'claude'], {
+        ...options,
+        plan: o.plan ? inputJson(o.plan) : undefined,
+        resume: Boolean(o.resume),
+        runId: o.resume || o.id,
+        retryFailed: o.retry_failed,
+        retryInterruptedWrites: o.retry_interrupted_writes,
+        plannerProfile: o.profile,
+        publicContext: o.public_context ? inputFile(o.public_context) : '',
+      });
+      json(result);
+      if (result.status !== 'completed') process.exitCode = 1;
+      return;
+    }
+    if (command === 'runs') {
+      const sub = o._[0] || 'list';
+      if (sub === 'list') return json(listRuns(cwd));
+      if (sub === 'status') return json(runStatus(cwd, o.id));
+      if (sub === 'cancel') return json(cancelRun(cwd, o.id));
+      if (sub === 'message')
+        return json(sendTaskMessage(cwd, o.id, o.task_id, o.content, { sender: o.sender }));
+      throw new FoldspaceError('configuration', 'Unknown runs command');
+    }
+    if (command === 'roundtable') {
+      const input = o.input ? inputJson(o.input) : {};
+      const result = await roundtable(cwd, o.task || input.objective, csv(o.providers), {
+        ...options,
+        publicContext: input.publicContext,
+        evidence: o.evidence ? inputJson(o.evidence) : input.evidence,
+        voters: csv(o.voters) || input.voters,
+        chairProfile: o.chair || input.chairProfile,
+        method: o.method || input.method,
+        humanGate: o.human_gate || input.humanGate,
+      });
+      return json(result);
+    }
+    if (command === 'decision') {
+      const sub = o._[0] || 'status';
+      if (sub === 'status') return json(decisionStatus(cwd, o.id));
+      return json(resolveDecision(cwd, o.id, sub, o.reason));
+    }
+    if (command === 'handoff') {
+      const sub = o._[0] || 'start';
+      const terminal = {
+        backend: o.backend || 'auto',
+        name: o.name,
+        command: o.command,
+        args: o.args ? JSON.parse(o.args) : undefined,
+        interactive: o.interactive ? true : undefined,
+        timeoutMs: options.timeoutMs,
+        envAllowlist: csv(o.env_allowlist),
+        signal: controller.signal,
+        enter: !o.no_enter,
+        waitMs: o.wait_ms === undefined ? undefined : Number(o.wait_ms),
+        intervalMs: o.interval_ms ? Number(o.interval_ms) : undefined,
+      };
+      if (sub === 'start' || o.prompt || o.prompt_file) {
+        if (sub === 'send') return json(await sendHandoff(o.id, prompt(o), terminal));
+        if (sub === 'resume')
+          return json(
+            await resumeHandoff(
+              o.id,
+              o.prompt_file ? inputFile(o.prompt_file) : o.prompt,
+              terminal,
+            ),
+          );
+        return json(
+          await handoff(
+            cwd,
+            o.prompt_file
+              ? inputFile(o.prompt_file)
+              : o.prompt || o._.slice(sub === 'start' ? 1 : 0).join(' '),
+            terminal,
+          ),
+        );
+      }
+      if (sub === 'list') return json(listHandoffs());
+      if (sub === 'status') return json(handoffStatus(o.id));
+      if (sub === 'read' || sub === 'capture') return json(await readHandoff(o.id, terminal));
+      if (sub === 'poll') return json(await pollHandoff(o.id, terminal));
+      if (sub === 'resume')
+        return json(await resumeHandoff(o.id, undefined, { ...terminal, backend: o.backend }));
+      if (sub === 'send') return json(await sendHandoff(o.id, o._.slice(1).join(' '), terminal));
+      if (sub === 'cancel') return json(await cancelHandoff(o.id, terminal));
+      if (sub === 'close') return json(await closeHandoff(o.id, terminal));
+      if (sub === 'complete') return json(completeHandoff(o.id, Number(o.exit_code || 0)));
+      throw new FoldspaceError('configuration', 'Unknown handoff command');
+    }
+    if (command === 'auto-butterfly') {
+      check(
+        o.input || o.transcript || o.artifact,
+        'Use --input history.json or --artifact with explicit history',
+      );
+      const input =
+        o.input || o.transcript
+          ? inputJson(o.input || o.transcript)
+          : { version: 1, artifacts: [{ id: 'artifact', path: o.artifact }], transcript: [] };
+      const result = await autoButterfly(cwd, input, {
+        ...options,
+        analyze: o.analyze,
+        handoff: o.handoff,
+        backend: o.backend,
+        providers: csv(o.providers) || [o.profile || 'claude'],
+      });
+      if (o.artifact) result.currentHash = hash(inputFile(resolve(cwd, o.artifact)));
+      return json(result);
+    }
+    if (command === 'doctor') {
+      let configuration;
+      try {
+        const config = loadConfig(cwd, o.config);
+        configuration = { ok: true, profiles: Object.keys(config.profiles) };
+      } catch (error) {
+        configuration = { ok: false, error: error.message };
+      }
+      const checks = {
+        node: process.versions.node,
+        nodeSupported: Number(process.versions.node.split('.')[0]) >= 20,
+        platform: process.platform,
+        processGroups: process.platform !== 'win32',
+        project: projectIdentity(cwd),
+        stateHome: stateHome(),
+        configuration,
+        capabilities: Object.fromEntries(
+          ['claude', 'codex', 'kimi', 'tmux', 'cmux'].map((name) => [name, commandExists(name)]),
+        ),
+        plugin:
+          JSON.parse(readFileSync(new URL('../.claude-plugin/plugin.json', import.meta.url)))
+            .name === 'foldspace',
+      };
+      const ok = checks.nodeSupported && configuration.ok && checks.plugin;
+      json({ ok, checks });
+      if (!ok) process.exitCode = 1;
+      return;
+    }
+    throw new FoldspaceError('configuration', `Unknown command: ${command}`);
+  } finally {
+    process.removeListener('SIGINT', abort);
+    process.removeListener('SIGTERM', abort);
+  }
+}
+main().catch((error) => {
+  process.stderr.write(
+    `${JSON.stringify(redactData({ ok: false, error: { code: error.code || 'error', message: error.message } }, environmentSecrets(process.env)))}\n`,
+  );
+  process.exitCode = 1;
+});
