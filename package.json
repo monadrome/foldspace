@@ -44,10 +44,10 @@
     "orchestration"
   ],
   "license": "MIT",
-  "author": "HuaTalk (https://github.com/HuaTalk)",
+  "author": "HuaTalk (https://github.com/monadrome)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HuaTalk/foldspace.git"
+    "url": "git+https://github.com/monadrome/foldspace.git"
   },
   "publishConfig": {
     "access": "public"
@@ -64,9 +64,9 @@
     "test": "tests"
   },
   "bugs": {
-    "url": "https://github.com/HuaTalk/foldspace/issues"
+    "url": "https://github.com/monadrome/foldspace/issues"
   },
-  "homepage": "https://github.com/HuaTalk/foldspace#readme",
+  "homepage": "https://github.com/monadrome/foldspace#readme",
   "dependencies": {
     "yaml": "^2.9.1"
   },

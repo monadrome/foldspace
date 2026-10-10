@@ -2,6 +2,10 @@
 
 ## Production implementation audit (2026-10-09)
 
+- GitHub delivery (2026-10-10): local gh cache retains the old login HuaTalk,
+  but authenticated API login is monadrome. Repository metadata uses the verified
+  namespace while the npm name remains @huatalk/foldspace.
+
 - Clean worktree at start. Five tests cover only an index, one conflict, fallback,
   file creation, and hash changes. There is no durable lifecycle or DAG validation.
 - Runner ignores malformed configuration, inherits the full environment, accepts

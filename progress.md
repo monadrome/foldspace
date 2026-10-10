@@ -3,9 +3,13 @@
 ## GitHub delivery (2026-10-10)
 
 - User authorized committing and pushing the implementation to GitHub.
-- No Git remote or GitHub repository exists yet; authenticated account is HuaTalk.
+- Initial gh account cache reported HuaTalk; the GitHub API confirms the current
+  username is monadrome. The old username returned HTTP 404.
 - Retaining candidate version 0.2.0-rc.1 and adding bilingual changelogs.
-- Final validation and public repository creation/push are in progress.
+- Final checks passed: 50 offline tests, format/static/skill validation and
+  tarball install, direct CLI/examples/API execution and uninstall.
+- Three commits record runtime implementation, skill/license contracts and
+  documentation/CI. GitHub repository creation/push are in progress.
 
 ## Production implementation session (2026-10-09)
 

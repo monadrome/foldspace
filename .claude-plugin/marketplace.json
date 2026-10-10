@@ -2,7 +2,7 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "foldspace",
   "description": "Portable agent collaboration skills and a provider-neutral execution CLI.",
-  "owner": { "name": "HuaTalk", "url": "https://github.com/HuaTalk" },
+  "owner": { "name": "HuaTalk", "url": "https://github.com/monadrome" },
   "plugins": [
     {
       "name": "foldspace",
