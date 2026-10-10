@@ -8,8 +8,10 @@
 - Retaining candidate version 0.2.0-rc.1 and adding bilingual changelogs.
 - Final checks passed: 50 offline tests, format/static/skill validation and
   tarball install, direct CLI/examples/API execution and uninstall.
-- Three commits record runtime implementation, skill/license contracts and
-  documentation/CI. GitHub repository creation/push are in progress.
+- Commits record runtime implementation, skill/license contracts,
+  documentation/CI and verified GitHub namespace metadata.
+- Created the public repository https://github.com/monadrome/foldspace and pushed
+  main to origin with upstream tracking (2026-10-10).
 
 ## Production implementation session (2026-10-09)
 

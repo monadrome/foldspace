@@ -17,7 +17,7 @@ calls, publication, or changes to pre-existing terminal sessions.
   packaging, static checks and CI.
 - [complete] 6. Complete suite, plugin validation, clean HOME tarball installation,
   Node 20 verification and owned tmux/cmux probes; record residual limitations.
-- [in_progress] 7. Record candidate changes, verify the final worktree, commit,
+- [complete] 7. Record candidate changes, verify the final worktree, commit,
   create the public GitHub repository and push main.
 
 ## Acceptance Gates
@@ -50,6 +50,8 @@ boundaries, and uses deterministic bounded indexes. Default checks are offline.
   file fallback probe while tmux remained green.
 - `git diff --check`: passed. No provider calls, credentials, or machine state
   were added to the repository.
+- Public GitHub repository created at https://github.com/monadrome/foldspace;
+  main pushed with origin tracking (2026-10-10).
 
 ## Errors Encountered
 
